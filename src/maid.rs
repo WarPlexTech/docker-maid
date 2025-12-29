@@ -1,7 +1,9 @@
-use crate::enums::{ImagesPruneMode, ContainersUpdateMode};
+use crate::enums::{ContainersUpdateMode, ImagesPruneMode};
 use crate::utils::{connect_to_docker, get_all_containers, pull_image};
 use bollard::Docker;
-use bollard::models::{ContainerCreateBody, ContainerSummaryStateEnum};
+use bollard::models::{
+    ContainerCreateBody, ContainerSummaryStateEnum, NetworkingConfig,
+};
 use bollard::query_parameters::{
     CreateContainerOptionsBuilder, InspectContainerOptionsBuilder, PruneImagesOptionsBuilder,
     RemoveContainerOptionsBuilder, StartContainerOptionsBuilder, StopContainerOptionsBuilder,
@@ -141,7 +143,14 @@ async fn update_images(update_mode: &ContainersUpdateMode, docker: &Docker) {
                 current_container_name
             );
 
-            match update_container(&docker, current_container_id, &current_container_name, container_state).await {
+            match update_container(
+                &docker,
+                current_container_id,
+                &current_container_name,
+                container_state,
+            )
+            .await
+            {
                 Ok(_) => (),
                 Err(e) => {
                     error!("\t\t\t-> {}. Update skipped.", e);
@@ -176,9 +185,17 @@ async fn update_container(
         })?;
 
     // Ensure we have a valid configuration to work with
-    let new_config = container_inspect
+    let current_container_config = container_inspect
         .config
         .ok_or_else(|| "Failed to fetch container configuration.".to_string())?;
+
+    let current_container_network_settings = container_inspect
+        .network_settings
+        .ok_or_else(|| "Failed to fetch container network settings.".to_string())?;
+
+    let current_container_host_config = container_inspect
+        .host_config
+        .ok_or_else(|| "Failed to fetch container host configuration.".to_string())?;
 
     // Prepare the container stop, remove and create options
     let stop_container_options = StopContainerOptionsBuilder::new()
@@ -192,19 +209,28 @@ async fn update_container(
         .platform(container_inspect.platform.as_deref().unwrap_or_default())
         .build();
 
-    let container_create_body: ContainerCreateBody =
-        serde_json::from_value(serde_json::to_value(new_config).map_err(|e| {
+    let container_create_body_config_only: ContainerCreateBody = serde_json::from_value(
+        serde_json::to_value(&current_container_config).map_err(|e| {
             format!(
-                "Failed to serialize container configuration. (Internal error: `{}`)",
+                "Failed to serialize container configuration. (Internal error: `{}`).",
                 e
             )
-        })?)
-        .map_err(|e| {
-            format!(
-                "Failed to deserialize container configuration. (Internal error: `{}`)",
-                e
-            )
-        })?;
+        })?,
+    )
+    .map_err(|e| {
+        format!(
+            "Failed to deserialize container configuration. (Internal error: `{}`).",
+            e
+        )
+    })?;
+
+    let container_create_body = ContainerCreateBody {
+        host_config: Some(current_container_host_config),
+        networking_config: Some(NetworkingConfig {
+            endpoints_config: current_container_network_settings.networks,
+        }),
+        ..container_create_body_config_only
+    };
 
     // Perform the container operations
     info!("\t\t-> Stopping container...");
