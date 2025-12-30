@@ -1,15 +1,14 @@
 use crate::enums::{ContainersUpdateMode, ImagesPruneMode};
 use crate::utils::{connect_to_docker, get_all_containers, pull_image};
 use bollard::Docker;
-use bollard::models::{
-    ContainerCreateBody, ContainerSummaryStateEnum, NetworkingConfig,
-};
+use bollard::models::{ContainerCreateBody, ContainerSummaryStateEnum, NetworkingConfig};
 use bollard::query_parameters::{
     CreateContainerOptionsBuilder, InspectContainerOptionsBuilder, PruneImagesOptionsBuilder,
     RemoveContainerOptionsBuilder, StartContainerOptionsBuilder, StopContainerOptionsBuilder,
 };
 use log::{error, info, warn};
 use std::collections::HashMap;
+use std::env;
 
 pub async fn housekeeping() {
     info!("Housekeeping duties underway.");
@@ -37,6 +36,8 @@ async fn update_images(update_mode: &ContainersUpdateMode, docker: &Docker) {
     // Updating tags to their latest digests
     info!("[DUTY] Checking for new container image digests...");
 
+    let self_id = env::var("HOSTNAME").ok();
+
     // Fetch containers list
     let containers = match get_all_containers(&docker).await {
         Ok(containers) => containers,
@@ -60,6 +61,14 @@ async fn update_images(update_mode: &ContainersUpdateMode, docker: &Docker) {
                 continue;
             }
         };
+
+        // Skip the container of docker-maid itself
+        if let Some(ref sid) = self_id {
+            if current_container_id.starts_with(sid) {
+                info!("\t-> Skipping own container `{}`.", current_container_id);
+                continue;
+            }
+        }
 
         let current_container_name = match container.names.as_deref() {
             Some(id) => id.concat(),
