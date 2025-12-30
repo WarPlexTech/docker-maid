@@ -1,0 +1,14 @@
+services:
+  docker-maid:
+    build: .
+    pull_policy: build
+    container_name: docker-maid
+    tty: true
+    restart: always
+    environment:
+      - MAID_SCHEDULE=0 0 */6 * * *
+      - MAID_RUN_ON_STARTUP=true
+      - MAID_DUTY_CONTAINERS_UPDATES=update
+      - MAID_DUTY_PRUNE_IMAGES=all
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

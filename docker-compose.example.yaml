@@ -1,0 +1,29 @@
+services:
+  docker-maid:
+    image: ghcr.io/warplextech/docker-maid:latest
+    container_name: docker-maid
+    tty: true # Optional: enables colorized logs
+    restart: always
+    environment:
+      # Schedule in cron format (defaults to every 6 hours).
+      # Note: This uses an expanded cron format:
+      # `sec` `min` `hour` `day of month` `month` `day of week` `year`
+      - MAID_SCHEDULE=0 0 */6 * * *
+
+      # Set to `true` to run an housekeeping round on container startup
+      - MAID_RUN_ON_STARTUP=true
+
+      # How to handle containers when newer image digests are available. Options:
+      # - label: [Not yet implemented] Will allow choosing a strategy via container labels.
+      # - update: Recreate containers using the latest image digest.
+      # - notify: [Not yet implemented] Currently acts as a `dry-run` option.
+      # - none (default): Do not check for image updates.
+      - MAID_DUTY_CONTAINERS_UPDATES=update
+
+      # How to handle images that are not used by any container. Options are:
+      # - all: Prune all unused images
+      # - dangling: Prune only dangling images
+      # - none (default): Do not prune images
+      - MAID_DUTY_PRUNE_IMAGES=all
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
