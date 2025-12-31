@@ -1,4 +1,4 @@
-# Docker-maid
+# Docker-maid [![Publish Docker image](https://github.com/WarPlexTech/docker-maid/actions/workflows/publish_image.yml/badge.svg)](https://github.com/WarPlexTech/docker-maid/actions/workflows/publish_image.yml)
 
 A simple and lightweight Docker housekeeping tool that helps you keep your system clean and your containers up to date.
 
@@ -24,10 +24,10 @@ services:
       # Schedule in cron format (defaults to every 6 hours).
       # Note: This uses an expanded cron format:
       # `sec` `min` `hour` `day of month` `month` `day of week` `year`
-      - MAID_SCHEDULE=0 0 */6 * * *
+      - MAID_SCHEDULE=0 0 */6 * * * *
 
       # Set to `true` to run an housekeeping round on container startup
-      - MAID_RUN_ON_STARTUP=true
+      - MAID_RUN_ON_STARTUP=false
 
       # How to handle containers when newer image digests are available. Options:
       # - label: [Not yet implemented] Will allow choosing a strategy via container labels.
@@ -41,21 +41,26 @@ services:
       # - dangling: Prune only dangling images
       # - none (default): Do not prune images
       - MAID_DUTY_PRUNE_IMAGES=all
+
+      # How to handle Docker build cache. Options are:
+      # - all: Prune all Docker build cache
+      # - none (default): Do not prune Docker build cache
+      - MAID_DUTY_PRUNE_BUILD_CACHE=all
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
 
 ## Configuration
 
-| Environment Variable           | Options                            | Default         | Description                                                                             |
-|--------------------------------|------------------------------------|-----------------|-----------------------------------------------------------------------------------------|
-| `MAID_SCHEDULE`                | Cron expression                    | `0 0 */6 * * *` | Housekeeping schedule (`sec` `min` `hour` `day of month` `month` `day of week` `year`). |
-| `MAID_RUN_ON_STARTUP`          | `true`,<br/>`false`                | `false`         | Run a housekeeping round immediately when the container starts.                         |
-| `MAID_DUTY_CONTAINERS_UPDATES` | `update`,<br/>`notify`,<br/>`none` | `none`          | `update` recreates containers. `notify` currently acts as a dry-run.                    |
-| `MAID_DUTY_PRUNE_IMAGES`       | `all`,<br/>`dangling`,<br/>`none`  | `none`          | Prune unused or just dangling images.                                                   |
-| `MAID_DUTY_PRUNE_BUILD_CACHE`  | `all`,<br/>`none`                  | `none`          | Prune all Docker build cache.                                                           |
+| Environment Variable           | Options                            | Default           | Description                                                                             |
+|--------------------------------|------------------------------------|-------------------|-----------------------------------------------------------------------------------------|
+| `MAID_SCHEDULE`                | Cron expression                    | `0 0 */6 * * * *` | Housekeeping schedule (`sec` `min` `hour` `day of month` `month` `day of week` `year`). |
+| `MAID_RUN_ON_STARTUP`          | `true`,<br/>`false`                | `false`           | Run a housekeeping round immediately when the container starts.                         |
+| `MAID_DUTY_CONTAINERS_UPDATES` | `update`,<br/>`notify`,<br/>`none` | `none`            | `update` recreates containers. `notify` currently acts as a dry-run.                    |
+| `MAID_DUTY_PRUNE_IMAGES`       | `all`,<br/>`dangling`,<br/>`none`  | `none`            | Prune unused or just dangling images.                                                   |
+| `MAID_DUTY_PRUNE_BUILD_CACHE`  | `all`,<br/>`none`                  | `none`            | Prune all Docker build cache.                                                           |
 
 ## Contributing
 
-This is my first Rust project, and I'll be improving it as I continue to learn. Contributions, suggestions, and feedback are more than welcome!
+This is my first Rust project, and I'll be improving it as I continue to learn. Contributions, suggestions, and feedback are welcome 😄
 

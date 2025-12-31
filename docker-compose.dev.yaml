@@ -10,5 +10,6 @@ services:
       - MAID_RUN_ON_STARTUP=true
       - MAID_DUTY_CONTAINERS_UPDATES=update
       - MAID_DUTY_PRUNE_IMAGES=all
+      - MAID_DUTY_PRUNE_BUILD_CACHE=all
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

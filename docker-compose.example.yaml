@@ -8,10 +8,10 @@ services:
       # Schedule in cron format (defaults to every 6 hours).
       # Note: This uses an expanded cron format:
       # `sec` `min` `hour` `day of month` `month` `day of week` `year`
-      - MAID_SCHEDULE=0 0 */6 * * *
+      - MAID_SCHEDULE=0 0 */6 * * * *
 
       # Set to `true` to run an housekeeping round on container startup
-      - MAID_RUN_ON_STARTUP=true
+      - MAID_RUN_ON_STARTUP=false
 
       # How to handle containers when newer image digests are available. Options:
       # - label: [Not yet implemented] Will allow choosing a strategy via container labels.
@@ -25,5 +25,10 @@ services:
       # - dangling: Prune only dangling images
       # - none (default): Do not prune images
       - MAID_DUTY_PRUNE_IMAGES=all
+
+      # How to handle Docker build cache. Options are:
+      # - all: Prune all Docker build cache
+      # - none (default): Do not prune Docker build cache
+      - MAID_DUTY_PRUNE_BUILD_CACHE=all
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
