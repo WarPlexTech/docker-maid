@@ -1,10 +1,11 @@
-use crate::enums::{ContainersUpdateMode, ImagesPruneMode};
+use crate::enums::{BuildPruneMode, ContainersUpdateMode, ImagesPruneMode};
 use crate::utils::{connect_to_docker, get_all_containers, pull_image};
 use bollard::Docker;
 use bollard::models::{ContainerCreateBody, ContainerSummaryStateEnum, NetworkingConfig};
 use bollard::query_parameters::{
-    CreateContainerOptionsBuilder, InspectContainerOptionsBuilder, PruneImagesOptionsBuilder,
-    RemoveContainerOptionsBuilder, StartContainerOptionsBuilder, StopContainerOptionsBuilder,
+    CreateContainerOptionsBuilder, InspectContainerOptionsBuilder, PruneBuildOptionsBuilder,
+    PruneImagesOptionsBuilder, RemoveContainerOptionsBuilder, StartContainerOptionsBuilder,
+    StopContainerOptionsBuilder,
 };
 use log::{error, info, warn};
 use std::collections::HashMap;
@@ -15,7 +16,8 @@ pub async fn housekeeping() {
 
     // Read environment variables
     let update_mode = ContainersUpdateMode::from_env();
-    let prune_mode = ImagesPruneMode::from_env();
+    let images_prune_mode = ImagesPruneMode::from_env();
+    let build_cache_prune_mode = BuildPruneMode::from_env();
 
     // Connect to docker socket
     let docker = connect_to_docker();
@@ -26,8 +28,13 @@ pub async fn housekeeping() {
     }
 
     // Prune images if PruneMode is not None
-    if prune_mode != ImagesPruneMode::None {
-        prune_images(&prune_mode, &docker).await;
+    if images_prune_mode != ImagesPruneMode::None {
+        prune_images(&images_prune_mode, &docker).await;
+    }
+
+    // Prune build cache if BuildPruneMode is not None
+    if build_cache_prune_mode != BuildPruneMode::None {
+        prune_build_cache(&docker).await;
     }
 }
 
@@ -113,6 +120,25 @@ async fn update_images(update_mode: &ContainersUpdateMode, docker: &Docker) {
                 continue;
             }
         };
+
+        match docker.inspect_image(&image_name).await {
+            Ok(image) => {
+                let repo_digests = image.repo_digests.unwrap_or_default();
+                if repo_digests.is_empty() {
+                    info!(
+                        "\t\t-> Image `{}` does not have any repo digests. Update skipped.",
+                        &image_name
+                    );
+                    continue;
+                }
+            }
+            Err(e) => {
+                error!(
+                    "\t\t-> Failed to inspect image `{}`. (Internal error: `{}`). Update skipped.",
+                    image_name, e
+                );
+            }
+        }
 
         match pull_image(&docker, &image_name).await {
             Ok(_) => (),
@@ -329,5 +355,30 @@ async fn prune_images(prune_mode: &ImagesPruneMode, docker: &Docker) {
             .unwrap_or_default()
             .len(),
         prune_images_response.space_reclaimed.unwrap_or_default()
+    );
+}
+
+async fn prune_build_cache(docker: &Docker) {
+    info!("[DUTY] Pruning build cache...");
+    let prune_build_options = PruneBuildOptionsBuilder::new().all(true).build();
+
+    let prune_build_response = match docker.prune_build(Some(prune_build_options)).await {
+        Ok(response) => response,
+        Err(e) => {
+            error!(
+                "\t-> Failed to prune build cache. (Internal error: `{}`).",
+                e
+            );
+            return;
+        }
+    };
+
+    info!(
+        "\t-> Prune completed successfully.\n\t\t- Removed `{}` caches.\n\t\t- Reclaimed `{}` bytes.",
+        prune_build_response
+            .caches_deleted
+            .unwrap_or_default()
+            .len(),
+        prune_build_response.space_reclaimed.unwrap_or_default()
     );
 }

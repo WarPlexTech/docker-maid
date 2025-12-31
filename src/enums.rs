@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-// region UpdateMode
+// region ContainersUpdateMode
 /// Represents the update mode of docker-maid.
 /// - `None` Dont check for updates
 /// - `Notify` [Not implemented yet] Check for new digests, but only notify the user
@@ -75,6 +75,40 @@ impl Display for ImagesPruneMode {
         match self {
             Self::None => write!(f, "None"),
             Self::Dangling => write!(f, "Dangling"),
+            Self::All => write!(f, "All"),
+        }
+    }
+}
+// endregion
+
+// region BuildPruneMode
+/// Represents the build cache prune mode of docker-maid.
+/// - `None` No build cache cleanup
+/// - `All` Prune all build caches
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum BuildPruneMode {
+    None,
+    All
+}
+
+impl BuildPruneMode {
+    /// Reads the `MAID_DUTY_PRUNE_BUILD_CACHE` environment variable and returns the corresponding prune mode.
+    /// Defaults to `None` if the variable is not set or has an invalid value.
+    pub fn from_env() -> Self {
+        match std::env::var("MAID_DUTY_PRUNE_BUILD_CACHE")
+            .map(|v| v.to_lowercase())
+            .as_deref()
+        {
+            Ok("all") => Self::All,
+            _ => Self::None
+        }
+    }
+}
+
+impl Display for BuildPruneMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::None => write!(f, "None"),
             Self::All => write!(f, "All"),
         }
     }

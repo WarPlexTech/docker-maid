@@ -10,6 +10,7 @@ use std::str::FromStr;
 use chrono::Local;
 use cron::Schedule;
 use log::{info, warn};
+use crate::enums::ImagesPruneMode;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -20,7 +21,19 @@ async fn main() {
     {
         let _ = connect_to_docker();
     }
-    
+
+    // Print a summary of the applied configuration
+    {
+        let mut summary = String::new();
+
+        summary.push_str("Initializing docker-maid with the following duties:");
+        summary.push_str(format!("\n\t- Containers update: `{}`", enums::ContainersUpdateMode::from_env()).as_ref());
+        summary.push_str(format!("\n\t- Images prune: `{}`", ImagesPruneMode::from_env()).as_ref());
+        summary.push_str(format!("\n\t- Build cache prune: `{}`", enums::BuildPruneMode::from_env()).as_ref());
+
+        info!("{}", summary);
+    }
+
     // Schedule initialization
     let schedule_string = env::var("MAID_SCHEDULE").unwrap_or_else(|_| {
         warn!("MAID_SCHEDULE not set, falling back to default schedule (every 6 hour): 0 0 */6 * * *");
