@@ -163,7 +163,7 @@ async fn update_images(update_mode: &ContainersUpdateMode, docker: &Docker) {
         };
 
         // If the image digest is unchanged, skip update
-        if &latest_digest == current_digest && false {
+        if &latest_digest == current_digest {
             info!("\t\t-> Container is up to date.");
             continue;
         }
