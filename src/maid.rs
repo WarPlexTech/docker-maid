@@ -149,7 +149,7 @@ async fn update_images(update_mode: &ContainersUpdateMode, docker: &Docker) {
                 );
                 continue;
             }
-        };
+        }
 
         let latest_digest = match docker.inspect_image(&image_name).await {
             Ok(image) => image.id.unwrap_or_default(),
@@ -191,7 +191,7 @@ async fn update_images(update_mode: &ContainersUpdateMode, docker: &Docker) {
                     error!("\t\t\t-> {}. Update skipped.", e);
                     continue;
                 }
-            };
+            }
         } else {
             warn!("\t\t\t-> Container update not set to `Update`, skipping.");
         }
