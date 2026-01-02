@@ -51,7 +51,7 @@ async fn main() {
     info!("House is quiet. Maid standing by.");
     loop {
         if let Some(next) = schedule.upcoming(Local).next() {
-            info!("Next housekeeping round scheduled at {}", next.format("%H:%M:%S %d-%m-%Y"));
+            info!("Next housekeeping round scheduled at {}", next.format("%H:%M:%S %d-%m-%Y (%Z)"));
 
             if let Ok(duration) = next.signed_duration_since(Local::now()).to_std() {
                 tokio::time::sleep(duration).await;

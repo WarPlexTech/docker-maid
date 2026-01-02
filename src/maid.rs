@@ -110,60 +110,19 @@ async fn update_images(update_mode: &ContainersUpdateMode, docker: &Docker) {
 
         info!("\t-> Checking container `{}`.", current_container_name);
 
-        let current_digest = match container.image_id.as_ref() {
-            Some(digest) => digest,
-            None => {
-                error!(
-                    "\t\t-> Container `{}` has no image ID. Update skipped.",
-                    current_container_name
-                );
-                continue;
-            }
-        };
-
-        match docker.inspect_image(&image_name).await {
-            Ok(image) => {
-                let repo_digests = image.repo_digests.unwrap_or_default();
-                if repo_digests.is_empty() {
-                    info!(
-                        "\t\t-> Image `{}` does not have any repo digests. Update skipped.",
-                        &image_name
-                    );
-                    continue;
-                }
-            }
-            Err(e) => {
-                error!(
-                    "\t\t-> Failed to inspect image `{}`. (Internal error: `{}`). Update skipped.",
-                    image_name, e
-                );
-            }
-        }
-
-        match pull_image(&docker, &image_name).await {
-            Ok(_) => (),
-            Err(e) => {
-                error!(
-                    "\t\t-> Failed to pull image `{}`. (Internal error: `{}`). Update skipped.",
-                    image_name, e
-                );
-                continue;
-            }
-        }
-
-        let latest_digest = match docker.inspect_image(&image_name).await {
-            Ok(image) => image.id.unwrap_or_default(),
-            Err(e) => {
-                error!(
-                    "\t\t-> Failed to inspect image `{}`. (Internal error: `{}`). Update skipped.",
-                    image_name, e
-                );
-                continue;
-            }
-        };
-
         // If the image digest is unchanged, skip update
-        if &latest_digest == current_digest {
+        let should_update = match is_newer_digest_available(&docker, &container).await {
+            Ok(value) => value,
+            Err(e) => {
+                error!(
+                    "\t\t-> Failed to check for newer digest for container `{}`. (Internal error: `{}`). Update skipped.",
+                    current_container_name, e
+                );
+                continue;
+            }
+        };
+
+        if !should_update {
             info!("\t\t-> Container is up to date.");
             continue;
         }
