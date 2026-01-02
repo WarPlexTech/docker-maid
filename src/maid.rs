@@ -1,5 +1,6 @@
 use crate::enums::{BuildPruneMode, ContainersUpdateMode, ImagesPruneMode};
-use crate::utils::{connect_to_docker, get_all_containers, pull_image};
+use crate::utils::{connect_to_docker, get_all_containers, get_container_summary, is_newer_digest_available};
+use crate::structs::SelfUpdate;
 use bollard::Docker;
 use bollard::models::{ContainerCreateBody, ContainerSummaryStateEnum, NetworkingConfig};
 use bollard::query_parameters::{
@@ -18,6 +19,7 @@ pub async fn housekeeping() {
     let update_mode = ContainersUpdateMode::from_env();
     let images_prune_mode = ImagesPruneMode::from_env();
     let build_cache_prune_mode = BuildPruneMode::from_env();
+    let should_self_update = SelfUpdate::from_env();
 
     // Connect to docker socket
     let docker = connect_to_docker();
@@ -36,6 +38,56 @@ pub async fn housekeeping() {
     if build_cache_prune_mode != BuildPruneMode::None {
         prune_build_cache(&docker).await;
     }
+
+    // Update self if SelfUpdateMode is not None
+    if should_self_update {
+        update_self(&docker).await;
+    }
+}
+
+/// Duty: Updates docker-maid itself to the latest version.
+async fn update_self(docker: &Docker) {
+    info!("[DUTY] Updating docker-maid...");
+
+    let self_id = match env::var("HOSTNAME").ok() {
+        Some(id) => id,
+        None => {
+            error!("\t-> Failed to fetch self ID. Update skipped.");
+            return;
+        }
+    };
+
+    let container_summary = match get_container_summary(&docker, &self_id).await {
+        Ok(containers) => containers,
+        Err(e) => {
+            error!("\t-> Failed to fetch own container summary. (Internal error: `{}`). Update skipped.", e);
+            return;
+        }
+    };
+
+    let container_summary = match container_summary.first() {
+        Some(summary) => summary,
+        None => {
+            error!("\t-> Self container not found. Update skipped.");
+            return;
+        }
+    };
+
+    let should_update = match is_newer_digest_available(&docker, &container_summary).await {
+        Ok(value) => value,
+        Err(e) => {
+            error!("\t\t-> Failed to check for newer digest for self container. (Internal error: `{}`). Update skipped.", e);
+            return;
+        }
+    };
+
+    if !should_update {
+        info!("\t\t-> Docker-maid is up to date.");
+        return;
+    }
+
+    // Rely on restart: always to restart the container with the latest version that we pulled when checking
+    std::process::exit(0);
 }
 
 /// Duty: Checks for new container image digests and updates containers or notifies the user based on the `update_mode` setting.

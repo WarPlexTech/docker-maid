@@ -1,6 +1,7 @@
 mod maid;
 mod utils;
 mod enums;
+mod structs;
 
 use crate::maid::housekeeping;
 use crate::utils::connect_to_docker;
@@ -31,6 +32,7 @@ async fn main() {
         summary.push_str(format!("\n\t- Containers update: `{}`", enums::ContainersUpdateMode::from_env()).as_ref());
         summary.push_str(format!("\n\t- Images prune: `{}`", ImagesPruneMode::from_env()).as_ref());
         summary.push_str(format!("\n\t- Build cache prune: `{}`", enums::BuildPruneMode::from_env()).as_ref());
+        summary.push_str(format!("\n\t- Self update: `{}`", structs::SelfUpdate::from_env()).as_ref());
 
         info!("{}", summary);
     }
