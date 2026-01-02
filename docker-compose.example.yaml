@@ -5,6 +5,10 @@ services:
     tty: true # Optional: enables colorized logs
     restart: always
     environment:
+      # Set the container timezone. Defaults to UTC.
+      # The supported timezone identifiers are available here https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+      - TZ=UTC
+
       # Schedule in cron format (defaults to every 6 hours).
       # Note: This uses an expanded cron format:
       # `sec` `min` `hour` `day of month` `month` `day of week` `year`

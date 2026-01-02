@@ -6,6 +6,7 @@ services:
     tty: true
     restart: always
     environment:
+      - TZ=Europe/Paris
       - MAID_SCHEDULE=0 0 */6 * * *
       - MAID_RUN_ON_STARTUP=true
       - MAID_DUTY_CONTAINERS_UPDATES=update

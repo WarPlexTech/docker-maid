@@ -21,6 +21,10 @@ services:
     tty: true # Optional: enables colorized logs
     restart: always
     environment:
+      # Set the container timezone. Defaults to UTC.
+      # The supported timezone identifiers are available here https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+      - TZ=UTC
+
       # Schedule in cron format (defaults to every 6 hours).
       # Note: This uses an expanded cron format:
       # `sec` `min` `hour` `day of month` `month` `day of week` `year`
@@ -52,13 +56,15 @@ services:
 
 ## Configuration
 
-| Environment Variable           | Options                            | Default           | Description                                                                             |
-|--------------------------------|------------------------------------|-------------------|-----------------------------------------------------------------------------------------|
-| `MAID_SCHEDULE`                | Cron expression                    | `0 0 */6 * * * *` | Housekeeping schedule (`sec` `min` `hour` `day of month` `month` `day of week` `year`). |
-| `MAID_RUN_ON_STARTUP`          | `true`,<br/>`false`                | `false`           | Run a housekeeping round immediately when the container starts.                         |
-| `MAID_DUTY_CONTAINERS_UPDATES` | `update`,<br/>`notify`,<br/>`none` | `none`            | `update` recreates containers. `notify` currently acts as a dry-run.                    |
-| `MAID_DUTY_PRUNE_IMAGES`       | `all`,<br/>`dangling`,<br/>`none`  | `none`            | Prune unused or just dangling images.                                                   |
-| `MAID_DUTY_PRUNE_BUILD_CACHE`  | `all`,<br/>`none`                  | `none`            | Prune all Docker build cache.                                                           |
+| Environment Variable           | Options                                                                                           | Default           | Description                                                                             |
+|--------------------------------|---------------------------------------------------------------------------------------------------|-------------------|-----------------------------------------------------------------------------------------|
+| `TZ`                           | Any valid timezone identifier (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) | `UTC`             | Container timezone.                                                                     |
+| `MAID_SCHEDULE`                | Cron expression                                                                                   | `0 0 */6 * * * *` | Housekeeping schedule (`sec` `min` `hour` `day of month` `month` `day of week` `year`). |
+| `MAID_RUN_ON_STARTUP`          | `true`,<br/>`false`                                                                               | `false`           | Run a housekeeping round immediately when the container starts.                         |
+| `MAID_DUTY_CONTAINERS_UPDATES` | `update`,<br/>`notify`,<br/>`none`                                                                | `none`            | `update` recreates containers. `notify` currently acts as a dry-run.                    |
+| `MAID_DUTY_PRUNE_IMAGES`       | `all`,<br/>`dangling`,<br/>`none`                                                                 | `none`            | Prune unused or just dangling images.                                                   |
+| `MAID_DUTY_PRUNE_BUILD_CACHE`  | `all`,<br/>`none`                                                                                 | `none`            | Prune all Docker build cache.                                                           |
+| `MAID_DUTY_SELF_UPDATE`        | `true`,<br/>`false`                                                                               | `true`            | Automatically update `docker-maid` to the latest image after each housekeeping round.   |
 
 ## Contributing
 

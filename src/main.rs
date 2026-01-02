@@ -27,6 +27,7 @@ async fn main() {
         let mut summary = String::new();
 
         summary.push_str("Initializing docker-maid with the following duties:");
+        summary.push_str(format!("\n\t- Run on startup: `{}`", structs::RunOnStartup::from_env()).as_ref());
         summary.push_str(format!("\n\t- Containers update: `{}`", enums::ContainersUpdateMode::from_env()).as_ref());
         summary.push_str(format!("\n\t- Images prune: `{}`", ImagesPruneMode::from_env()).as_ref());
         summary.push_str(format!("\n\t- Build cache prune: `{}`", enums::BuildPruneMode::from_env()).as_ref());
@@ -42,7 +43,7 @@ async fn main() {
     let schedule = Schedule::from_str(&schedule_string).expect("MAID_SCHEDULE is not a valid cron expression");
 
     // Run housekeeping immediately if requested
-    if env::var("MAID_RUN_ON_STARTUP").map(|v| v == "true").unwrap_or(false) {
+    if structs::RunOnStartup::from_env() {
         info!("MAID_RUN_ON_STARTUP is set to `true`, running housekeeping duties immediately.");
         housekeeping().await;
     }
